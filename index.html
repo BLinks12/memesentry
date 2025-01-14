@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MemeSentry - Vigilance for Memecoins</title>
+    <style>
+      body {
+        background-color: #121212;
+        color: #ffffff;
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 0;
+        padding: 32px;
+        height: calc(100dvh - 64px);
+      }
+      #header {
+        text-align: center;
+        font-size: 1.2em;
+        margin-top: 8px;
+      }
+      #container {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        flex-direction: row;
+        gap: 8px;
+        margin-top: 32px;
+      }
+      #text-container {
+        font-size: 2em;
+        position: relative;
+      }
+      #caret {
+        position: absolute;
+        right: -3px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background-color: white;
+        animation: blink 0.7s infinite;
+      }
+      @keyframes blink {
+        0%, 100% { opacity: 0; }
+        50% { opacity: 1; }
+      }
+      #footer {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-top: 32px;
+      }
+      #footer > div {
+        text-align: center;
+        font-size: 0.8em;
+      }
+      #footer a {
+        color: #52e152;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      #domainStatus {
+        margin-top: 16px;
+        font-size: 0.9em;
+        color: #52e152;
+      }
+      #submission-container {
+        margin-top: 24px;
+        text-align: center;
+      }
+      #submission-container input[type="url"] {
+        padding: 8px;
+        width: 250px;
+        border-radius: 4px;
+        border: 1px solid #444;
+        color: #000;
+        font-size: 1em;
+        margin-right: 8px;
+      }
+      #submission-container button {
+        background-color: #52e152;
+        border: none;
+        color: black;
+        font-size: 1em;
+        padding: 8px 16px;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      #submission-container button:hover {
+        background-color: #4cd74c;
+      }
+      .log {
+        width: 100%;
+        max-width: 600px;
+        background-color: #111;
+        font-family: monospace;
+        font-size: 0.85em;
+        padding: 10px;
+        border: 1px solid #444;
+        border-radius: 6px;
+        margin-top: 24px;
+        overflow-y: auto;
+        max-height: 200px;
+        white-space: pre-wrap;
+      }
+      .log span {
+        display: block;
+        margin-bottom: 4px;
+      }
+      .log .info {
+        color: #0f0;
+      }
+      .log .warning {
+        color: #ff0;
+      }
+      .log .error {
+        color: #f00;
+      }
+      .log .success {
+        color: #0ff;
+      }
+      .loading-indicator {
+        margin-top: 16px;
+        color: #52e152;
+        font-size: 1em;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- SVG Badge Icon for MemeSentry -->
+    <svg viewBox="0 0 512 512" style="height: 100px; width:100px; color: #52e152;" xmlns="http://www.w3.org/2000/svg">
+      <path fill="currentColor"
+        d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm118.4 137.3l-22.7 56.6 45.2 49.5
+         -51.9 36.6 2.2 59.3-54.8-22.2-54.8 22.2 2.2-59.3-51.9-36.6 45.2-49.5-22.7-56.6 57.2 17.8 31.2-45.6 31.2 45.6 57.2-17.8z"/>
+    </svg>
+
+    <div id="header">
+      <strong>MemeSentry</strong> - Stand Guard Against Rug Pulls
+      <br/>
+      <small style="opacity:0.7;">Submit a memecoin URL, let MemeSentry defend!</small>
+    </div>
+
+    <div id="container">
+      <!-- Lock Icon (similar style) -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" style="color: #52e152; height:30px;">
+        <path fill="currentColor"
+          d="M144 144v48H304V144c0-44.2-35.8-80-80-80s-80 35.8-80 80zM80 192V144C80 64.5 144.5 0 224 0s144 64.5
+             144 144v48h16c35.3 0 64 28.7 64 64V448c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V256c0-35.3 28.7-64
+             64-64H80z" />
+      </svg>
+      <div id="text-container">
+        <span id="protocol">sentry://</span
+        ><span id="domain"></span
+        ><span id="caret"></span>
+      </div>
+    </div>
+
+    <div id="domainStatus"></div>
+
+    <!-- URL submission section -->
+    <div id="submission-container">
+      <input type="url" id="auditUrl" placeholder="https://memecoin.example" />
+      <button id="beginAuditBtn">Begin Vigil</button>
+      <div class="loading-indicator" id="loadingIndicator">Sentry Scanning...</div>
+    </div>
+
+    <div class="log" id="logArea"></div>
+
+    <div id="footer">
+      <div>Enter a memecoin site URL and MemeSentry will stand guard. Our system analyzes potential threats, then emails you the results.</div>
+      <div>Follow us on X (Twitter) <a href="https://x.com/MemeSentry">@MemeSentry</a> for ongoing updates.</div>
+    </div>
+
+    <script>
+      /*******************************************
+       * 1) TYPEWRITER EFFECT FOR MEME DOMAINS
+       *******************************************/
+      var domains = [
+        "sentrydoge.net",
+        "guardpepe.com",
+        "meme-shield.org",
+        "token-vigilance.xyz",
+        "securememe.io"
+      ];
+      var currentDomainIndex = 0;
+      var currentCharIndex = 0;
+      var isDeleting = false;
+      var typingSpeed = 150;
+      var deletingSpeed = 75;
+      var pauseBetweenWords = 1000;
+
+      function typeText() {
+        var currentDomain = domains[currentDomainIndex];
+        var domainElement = document.getElementById("domain");
+
+        if (isDeleting) {
+          domainElement.textContent = currentDomain.substring(0, currentCharIndex - 1);
+          currentCharIndex--;
+        } else {
+          domainElement.textContent = currentDomain.substring(0, currentCharIndex + 1);
+          currentCharIndex++;
+        }
+
+        if (!isDeleting && currentCharIndex === currentDomain.length) {
+          isDeleting = true;
+          setTimeout(typeText, pauseBetweenWords);
+        } else if (isDeleting && currentCharIndex === 0) {
+          isDeleting = false;
+          currentDomainIndex = (currentDomainIndex + 1) % domains.length;
+          setTimeout(typeText, typingSpeed);
+        } else {
+          setTimeout(typeText, isDeleting ? deletingSpeed : typingSpeed);
+        }
+      }
+      typeText();
+
+      /*******************************************
+       * 2) LOG & UI ELEMENTS
+       *******************************************/
+      const logArea = document.getElementById("logArea");
+      const beginAuditBtn = document.getElementById("beginAuditBtn");
+      const auditUrlInput = document.getElementById("auditUrl");
+      const loadingIndicator = document.getElementById("loadingIndicator");
+
+      function logMessage(msg, type="info") {
+        const span = document.createElement("span");
+        span.classList.add(type);
+        span.innerText = msg;
+        logArea.appendChild(span);
+        logArea.scrollTop = logArea.scrollHeight;
+      }
+
+      /*******************************************
+       * 3) VIGIL PROCESS SIMULATION
+       *******************************************/
+      beginAuditBtn.addEventListener("click", () => {
+        const urlToWatch = auditUrlInput.value.trim();
+        if (!urlToWatch) {
+          logMessage("Please enter a valid URL before starting the vigil.", "warning");
+          return;
+        }
+
+        logMessage(`Initiating MemeSentry watch for: ${urlToWatch} ...`, "info");
+        loadingIndicator.style.display = "inline";
+
+        // Simulate some "processing" time
+        setTimeout(() => {
+          loadingIndicator.style.display = "none";
+          logMessage("Vigil process complete! To receive the findings, we need your email.", "info");
+
+          // Prompt the user for their email
+          const email = prompt("Enter your email to receive the sentry report:", "");
+          if (email) {
+            logMessage(`Email provided: ${email}. We'll dispatch the sentinel report soon!`, "success");
+          } else {
+            logMessage("No email provided—MemeSentry cannot deliver the outcome.", "warning");
+          }
+        }, 3000); // 3-second fake scanning
+      });
+    </script>
+  </body>
+</html>
